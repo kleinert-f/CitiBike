@@ -368,14 +368,13 @@ def train_and_make_pred(X_train, y_train, X_test, y_test, compile_opts, fit_opts
     return y_pred, history
 
 
-
 if __name__ == '__main__':
+
     warnings.simplefilter(action='ignore', category=FutureWarning)
     logging.getLogger().setLevel(logging.INFO)
 
-    # plot_list = ['PlotFromAtoBHeatmap', 'PlotDurationDist', 'PlotDurationDist_ext', 'PlotNumRidesPerTimes',
-    #              'PlotNumRidesPerYearStation', 'PlotROCs', 'PlotETS']
-    plot_list = ['PlotROCs']
+    plot_list = ['PlotFromAtoBHeatmap', 'PlotDurationDist', 'PlotDurationDist_ext', 'PlotNumRidesPerTimes',
+                 'PlotNumRidesPerYearStation', 'PlotROCs', 'PlotETS']
     preprocess = False
     create_plots = True
     preproc_data_path = 'preproc_data_path'
@@ -388,13 +387,6 @@ if __name__ == '__main__':
               'end station longitude': np.float32, 'bikeid': np.int32, #'usertype': 'category',
               'birth year': np.int32, 'gender': np.int16}
 
-    #dtypes = {'tripduration': np.int32,  # starttime and stoptime via parse_dates
-    #          'start station id': 'category', 'start station name': 'category',
-    #          'start station latitude': np.float32, 'start station longitude': np.float32,
-    #          'end station id': 'category', 'end station name': 'category', 'end station latitude': np.float32,
-    #          'end station longitude': np.float32, 'bikeid': np.int32, 'usertype': 'category',
-    #          'birth year': np.int32, 'gender': 'category'}
-    #
     if preprocess:
         client_ = Client()
 
@@ -535,9 +527,6 @@ if __name__ == '__main__':
     resampled_steps_per_epoch_balanced = int(np.ceil(2.0 * y_train[y_train == 1].shape[0] / batch_size))
 
 
-    # test_ds = tf.data.Dataset.from_tensor_slices((X_test, y_test))#.cache()
-    # test_ds = test_ds.batch(batch_size).prefetch(2)
-    # ensure keras model provides predict_proba method
     tf.keras.models.Model.predict_proba = tf.keras.models.Model.predict
 
     compile_opts = {'loss': tf.keras.losses.BinaryCrossentropy(),
@@ -563,10 +552,6 @@ if __name__ == '__main__':
         logging.info('running training for train_class_weights_tf')
         class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(y_val), y=y_val)
         fit_opts['class_weight'] = {0: class_weights[0], 1: class_weights[1]}
-        # train_ds = make_ds(X_train, y_train)
-        # y_pred_tf_class_weights, hist_tf_class_weights = train_tf_model(train_ds=train_ds, test_ds=test_ds,
-        #                                                                 compile_opts=compile_opts, fit_opts=fit_opts
-        #                                                                 )
         y_pred_tf_class_weights, hist_tf_class_weights = train_and_make_pred(X_train, y_train, X_test, y_test,
                                                                              compile_opts, fit_opts,
                                                                              batch_size, buffer_size, balanced=False
@@ -616,15 +601,9 @@ if __name__ == '__main__':
         client_.restart()
 
 
-    # modeltf = get_keras_model(input_shape=[X_val.shape[1]], lr=0.1, momentum=0.9)
-    # hist = modeltf.fit(X_val, y_val, epochs=100, validation_split=.2, batch_size=1024)
-    # class_weights = class_weight.compute_class_weight('balanced',classes=np.unique(y_val), y=y_val)
-    # hist = modeltf.fit(X_val, y_val, epochs=100, validation_split=.2, batch_size=1024 * 2, shuffle=True,
-    #                    class_weight={0: class_weights[0], 1: class_weights[1]})
     logging.debug('debug marker')
 
-    #modeltf = get_keras_model([X_val.shape[1]])
-    #hist = modeltf.fit(X_val, y_val, epochs=1, batch_size=1024*4)
+
 
     y_preds = {'tf_balanced': np.load(f'{pred_data_path}/y_pred_tf_balanced.npy'),
                'tf_class_weights': np.load(f'{pred_data_path}/y_pred_tf_class_weights.npy'),
@@ -640,34 +619,4 @@ if __name__ == '__main__':
     if 'PlotETS' in plot_list:
         ets = PlotETS(plot_folder='plots')
         ets.plot(y_obs=y_test, y_preds=y_preds)
-
-    # logging.debug('debug marker')
-    #
-    # X_train = dd.read_parquet(f'{preproc_data_path}/X_train.parquet', engine='pyarrow')#.to_dask_array(lengths=True)
-    # y_train = dd.read_parquet(f'{preproc_data_path}/y_train.parquet', engine='pyarrow')#.to_dask_array(lengths=True)
-    # X_train[cols_to_standardize], train_mean, train_std = standardize(X_train[cols_to_standardize])
-    #
-    # y_train = y_train.flatten()
-    #
-    #
-    # dask_model = ltb.DaskLGBMClassifier(client=client_, max_depth=10, is_unbalance=True)
-    # dask_model.fit(X_train.to_dask_array(lengths=True), y_train.to_dask_array(lengths=True).flatten())
-    # y_val_pred = dask_model.predict_proba(X_val)
-    #
-    #
-
-    # y_test_pred_pr = clf.predict_proba(X_test)[:, 1]
-    # df = pd.DataFrame({'obs': y_test, 'pred': y_test_pred_pr})
-    #
-    # ets = verif.metric.Ets()
-    # interval = verif.interval.Interval(.5, np.inf, True, True)
-    # ets.compute_from_obs_fcst(df['obs'].values, df['pred'].values, interval)
-    #
-    # ets_collector = dict()
-    # for name, y_pred in y_preds.items():
-    #     ets_collector[name] = ets.compute_from_obs_fcst(y_test, y_pred, interval)
-
-
-    # pd.crosstab(index=df['obs'], columns=df['pred'].apply(lambda x: 1 if x >= .5 else 0))
-
 
